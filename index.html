@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pixel 2 Plates</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <style>
+   body {
+            font-family: Arial, sans-serif;
+            background: url("images/vecteezy_spices-for-use-as-cooking-ingredients-on-a-wooden-background_3823542.jpg") no-repeat center center fixed;
+            background-size: cover;
+            color: #ffffff;
+            margin: 0;
+            padding: 0;
+        }
+
+    header {
+      text-align: center;
+      padding: 20px;
+    }
+    h1 {
+      font-size: 24px;
+    }
+    .box {
+      background-color: #ffffff;
+      color: #1e1e1e;
+      padding: 2px 5px;
+    }
+    .container {
+      max-width: 600px;
+      margin: 20px auto;
+      padding: 20px;
+      background-color: #ffffff;
+      border-radius: 10px;
+      color: #1e1e1e;
+    }
+    .input-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    .image-upload {
+      margin-bottom: 20px;
+      text-align: center;
+    }
+    .image-upload label {
+      cursor: pointer;
+      display: inline-block;
+      padding: 10px;
+      border: 2px dashed #ccc;
+      border-radius: 5px;
+      transition: background-color 0.3s ease;
+    }
+    .image-upload label:hover {
+      background-color: #3498db;
+      color: #ffffff;
+    }
+    .image-upload img {
+      width: 40px;
+      height: 40px;
+      vertical-align: middle;
+    }
+    #imageUpload {
+      display: none;
+    }
+    .prompt-input {
+      display: flex;
+      width: 100%;
+    }
+    #promptInput {
+      flex-grow: 1;
+      padding: 10px;
+      border: 1px solid #ccc;
+      border-radius: 5px 0 0 5px;
+    }
+    #sendButton {
+      background-color: #3498db;
+      color: #ffffff;
+      border: none;
+      padding: 10px 15px;
+      border-radius: 0 5px 5px 0;
+      cursor: pointer;
+      transition: background-color 0.3s ease;
+    }
+    #sendButton:hover {
+      background-color: #2980b9;
+    }
+    .display-container img {
+      max-width: 100%;
+      border-radius: 5px;
+      margin-bottom: 10px;
+    }
+    .display-container p {
+      margin: 0;
+      font-weight: bold;
+    }
+    .output-container {
+      white-space: pre-wrap;
+    }
+    @media (max-width: 600px) {
+      .container {
+        margin: 10px;
+        padding: 15px;
+      }
+      h1 {
+        font-size: 20px;
+      }
+      #promptInput, #sendButton {
+        padding: 8px;
+      }
+      .image-upload label {
+        padding: 8px;
+      }
+    }
+    .message-box {
+      background-color: #f0f0f0;
+      border: 1px solid #ccc;
+      padding: 10px;
+      width: 300px;
+      margin: 20px auto;
+      border-radius: 5px;
+      box-shadow: 0px 0px 10px rgba(0,0,0,0.2);
+    }
+    .message-box p {
+      margin: 0;
+      color: #333;
+    }
+
+    .logo {
+  width: 200px; /* Adjust width as needed */
+  height: auto; /* Keeps the aspect ratio */
+}
+
+  </style>
+  <header>
+    <img src="images/LOGO_p2p[1].png" alt="Logo" class="logo">
+
+  </header>
+  <main>
+    <div class="container input-container">
+      <div class="image-upload">
+        <label for="imageUpload">
+          <img src="images/image-upload.png" alt="">
+          <span>Upload Image</span>
+        </label>
+        <input type="file" id="imageUpload" accept="image/*">
+      </div>
+      <div class="prompt-input">
+        <input type="text" id="promptInput" placeholder="Message">
+        <button id="sendButton">↑</button>
+      </div>
+    </div>
+
+    <div class="container display-container" id="displayContainer">
+      <!-- Uploaded image and question will be displayed here -->
+    </div>
+
+    <div class="container output-container" id="outputContainer">
+      <!-- Bot response will be displayed here -->
+    </div>
+  </main>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      const imageUpload = document.getElementById('imageUpload');
+      const promptInput = document.getElementById('promptInput');
+      const sendButton = document.getElementById('sendButton');
+      const displayContainer = document.getElementById('displayContainer');
+      const outputContainer = document.getElementById('outputContainer');
+      let uploadedImage = null;
+    
+      imageUpload.addEventListener('change', handleImageUpload);
+      sendButton.addEventListener('click', handleSend);
+      promptInput.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') handleSend();
+      });
+    
+      function handleImageUpload(e) {
+        const file = e.target.files[0];
+        if (file) {
+          const reader = new FileReader();
+          reader.onload = (e) => {
+            uploadedImage = e.target.result;
+            displayContainer.innerHTML = `<img src="${uploadedImage}" alt="Uploaded Image">`;
+          };
+          reader.readAsDataURL(file);
+        }
+      }
+    
+      async function handleSend() {
+        const prompt = promptInput.value.trim();
+        if (!prompt || !uploadedImage) {
+          outputContainer.textContent = 'Please upload an image and enter your text.';
+          return;
+        }
+    
+        try {
+          // Prepare image data for upload
+          const blob = await (await fetch(uploadedImage)).blob();
+          const formData = new FormData();
+          formData.append('file', blob, 'uploaded_image.png');
+    
+          // Upload image to the server
+          const uploadResponse = await fetch('/upload', {
+            method: 'POST',
+            body: formData,
+          });
+    
+          if (!uploadResponse.ok) {
+            throw new Error('Failed to upload image');
+          }
+    
+          const uploadResult = await uploadResponse.json();
+          const fileUri = uploadResult.fileUri;
+          const mimeType = blob.type;
+    
+          // Send data to the server to process
+          const chatResponse = await fetch('/process', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              userInput: prompt,
+              fileUri,
+              mimeType,
+            }),
+          });
+    
+          if (!chatResponse.ok) {
+            throw new Error('Failed to process request');
+          }
+    
+          const result = await chatResponse.json();
+          const formattedResponse = result.response
+            .replace(/(\*\*.*?\*\*)/g, '<b>$1</b>') // Bold formatting for double asterisks
+            .replace(/\*\*(.*?)\*\*/g, '$1'); // Remove extra asterisks
+    
+          displayContainer.innerHTML = `
+            <img src="${uploadedImage}" alt="Uploaded Image">
+            <p>${prompt}</p>
+          `;
+          outputContainer.innerHTML = formattedResponse;
+        } catch (error) {
+          console.error(`Client-side error: ${error.message}`);
+          outputContainer.textContent = `Error: ${error.message}`;
+        }
+      }
+    });
+    </script>
+    
+</body>
+</html>
